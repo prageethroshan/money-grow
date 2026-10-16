@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Money Grows</title>
+<style>html{color-scheme:light}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Noto+Sans+Sinhala:wght@400..800&display=swap" rel="stylesheet">
+<style>
+/* Layout: one calm column. Hero with a live figure, then a calculator panel (controls beside results), chart, two insight cards, Rule of 72 explainer. */
+:root{
+  --bg:#F5F7F2; --surface:#FFFFFF; --sunk:#EBF0E8; --line:#DCE4DB; --ink:#14261D; --ink2:#3D5247; --muted:#5F7367;
+  --green:#1E6B49; --green-ink:#FFFFFF; --gold:#B97B0A; --gold-soft:#F6E7C4;
+  --c-dep:#2F8F6A; --c-int:#B97B0A; --c-real:#14261D;
+  --shadow:0 1px 2px rgba(20,38,29,.06),0 8px 24px rgba(20,38,29,.06);
+  --font:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --fsi:'Noto Sans Sinhala','Iskoola Pota','Nirmala UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1C15; --surface:#14261D; --sunk:#0B1712; --line:#25402F; --ink:#F1F5EE; --ink2:#C6D5CB; --muted:#93AB9C;
+  --green:#3C9D78; --green-ink:#0B1712; --gold:#E8B04A; --gold-soft:#3A2D10;
+  --c-dep:#3C9D78; --c-int:#C48608; --c-real:#F1F5EE;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1C15; --surface:#14261D; --sunk:#0B1712; --line:#25402F; --ink:#F1F5EE; --ink2:#C6D5CB; --muted:#93AB9C;
+  --green:#3C9D78; --green-ink:#0B1712; --gold:#E8B04A; --gold-soft:#3A2D10;
+  --c-dep:#3C9D78; --c-int:#C48608; --c-real:#F1F5EE;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25); color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+.si{font-family:var(--fsi);line-height:1.65}
+html[data-lang="en"] .si{display:none}
+html[data-lang="si"] .en{display:none}
+html[data-lang="both"] .si{display:block}
+html[data-lang="both"] :is(.waitrow,.legend span,.seg,.ibtn,.formula,.mini .lbl,.bar,.tools,.chips) .si,
+html[data-lang="both"] .ibtn .si,html[data-lang="both"] .seg .si{display:inline}
+html[data-lang="both"] .legend span .si,html[data-lang="both"] .mini .lbl .si,html[data-lang="both"] .formula .si,html[data-lang="both"] .waitrow .si{display:inline;margin-left:.35em}
+h1 .si,h2 .si,h3 .si,.eyebrow .si,.lbl .si,.help .si,.hero-cap .si{margin-top:2px}
+.bi{display:block}
+.bi .si{display:block;color:var(--muted);font-size:.92em}
+html[data-lang="si"] .bi .si{color:inherit;font-size:1em}
+.wrap{max-width:1120px;margin:0 auto}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px;border-radius:6px}
+
+/* top bar */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;line-height:1.25}
+.brand small{display:block;font-weight:500;color:var(--muted);font-size:12.5px}
+.coin{width:34px;height:34px;border-radius:50%;background:var(--green);color:var(--green-ink);display:grid;place-items:center;font-weight:800;flex:none}
+.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.seg{display:flex;background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg button,.ibtn{font:inherit;font-size:14px;font-weight:600;color:var(--ink2);background:none;border:0;padding:7px 12px;border-radius:7px;cursor:pointer;min-height:36px}
+.seg button[aria-pressed="true"]{background:var(--green);color:var(--green-ink)}
+.ibtn{background:var(--sunk);border:1px solid var(--line);border-radius:10px}
+
+/* hero */
+.hero{padding:clamp(24px,5vw,56px) 0 clamp(20px,3vw,36px);display:grid;gap:12px}
+.eyebrow{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+h1{font-size:clamp(30px,5.2vw,56px);line-height:1.05;margin:0;max-width:18ch;text-wrap:balance;letter-spacing:-.01em}
+h1 .si{font-size:.62em;font-weight:700;color:var(--ink2);margin-top:6px;max-width:none;line-height:1.5}
+.lede{max-width:60ch;color:var(--ink2);font-size:clamp(16px,1.6vw,19px);margin:0}
+.hero-fig{margin-top:8px;display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 18px}
+.hero-num{font-size:clamp(44px,8vw,84px);font-weight:800;line-height:1;color:var(--green);letter-spacing:-.02em}
+.hero-cap{color:var(--ink2);max-width:36ch}
+
+/* panel */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:clamp(16px,3vw,28px);display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(20px,3vw,36px)}
+.panel h2,.sec h2{font-size:clamp(20px,2.4vw,26px);margin:0 0 4px;line-height:1.2;text-wrap:balance}
+.ctls{display:grid;gap:20px;align-content:start}
+.ctl label{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-weight:600;margin-bottom:6px}
+.ctl output{font-weight:800;font-size:20px;color:var(--green)}
+input[type=range]{width:100%;height:32px;accent-color:var(--green);margin:0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.chips button{font:inherit;font-size:14px;font-weight:600;border:1px solid var(--line);background:var(--sunk);color:var(--ink2);border-radius:999px;padding:6px 14px;cursor:pointer;min-height:36px}
+.chips button[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:var(--green-ink)}
+.help{font-size:13px;color:var(--muted);margin:4px 0 0}
+.results{display:grid;gap:14px;align-content:start;min-width:0}
+.big{background:var(--sunk);border-radius:14px;padding:16px 18px}
+.big .lbl{font-weight:600;color:var(--ink2)}
+.big .val{font-size:clamp(34px,5vw,54px);font-weight:800;line-height:1.1;color:var(--green);margin:2px 0 0;letter-spacing:-.01em}
+.minis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.mini{border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
+.mini .lbl{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.mini .lbl i{width:10px;height:10px;border-radius:3px;flex:none}
+.mini .v{font-size:clamp(17px,2vw,22px);font-weight:700;margin-top:2px;overflow-wrap:anywhere}
+.mini .s{font-size:13px;color:var(--muted)}
+
+/* chart */
+.sec{margin-top:clamp(28px,5vw,56px)}
+.chartbox{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:clamp(14px,2.4vw,24px)}
+.chead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px 20px;align-items:flex-start;margin-bottom:10px}
+.legend{display:flex;gap:6px 18px;flex-wrap:wrap;font-size:14px;color:var(--ink2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:14px;height:10px;border-radius:2px;display:inline-block}
+.legend i.ln{height:3px;border-radius:2px}
+.plot{position:relative}
+svg{display:block;width:100%;height:auto;touch-action:pan-y}
+svg text{fill:var(--muted);font-family:var(--font);font-size:13px}
+svg text.strong{fill:var(--ink);font-weight:700}
+.gl{stroke:var(--line);stroke-width:1}
+.tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:10px;padding:8px 12px;font-size:13px;min-width:190px;display:none;z-index:2}
+.tip .yr{color:var(--muted);margin-bottom:4px}
+.tip .row{display:flex;justify-content:space-between;gap:14px;align-items:center}
+.tip .row b{font-size:15px}
+.tip .k{display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.tblwrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--muted);font-weight:600}
+
+/* insights */
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:clamp(16px,2.4vw,24px)}
+.card h3{margin:0 0 8px;font-size:19px;line-height:1.25}
+.card .num{font-size:clamp(30px,4vw,44px);font-weight:800;color:var(--green);line-height:1.1;margin:6px 0}
+.card p{margin:6px 0 0;color:var(--ink2)}
+.card select{font:inherit;background:var(--sunk);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px;min-height:36px}
+.waitrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* rule of 72 */
+.r72{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(20px,3vw,36px);align-items:start}
+.formula{display:inline-block;background:var(--gold-soft);color:var(--ink);border-radius:12px;padding:10px 16px;font-size:clamp(20px,3vw,28px);font-weight:800;margin:6px 0 10px;letter-spacing:.01em}
+.bars{display:grid;gap:10px}
+.bar{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:10px;align-items:center;font-size:14px}
+.bar .tr{background:var(--sunk);border-radius:6px;height:14px;overflow:hidden}
+.bar .fl{height:100%;background:var(--c-dep);border-radius:0 4px 4px 0}
+.bar.you .fl{background:var(--c-int)}
+.bar b{font-variant-numeric:tabular-nums;min-width:7.5ch;text-align:right}
+.bar.you{font-weight:700}
+
+footer{margin:clamp(28px,5vw,56px) 0 32px;padding-top:16px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);display:grid;gap:6px}
+footer .si{font-size:13px}
+
+@media(max-width:860px){.panel,.r72,.two{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:520px){.minis{grid-template-columns:minmax(0,1fr)}.bar{grid-template-columns:48px minmax(0,1fr) auto}}
+@media(prefers-reduced-motion:no-preference){.big .val,.hero-num{transition:color .2s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><span class="coin" aria-hidden="true">Rs</span>
+      <div><span class="en">Dept. of Accountancy and Finance</span><span class="si" lang="si">ගිණුම්කරණ සහ මූල්‍ය අංශය</span><small>Rajarata University of Sri Lanka · FIN LIT EXPO</small></div></div>
+    <div class="tools">
+      <div class="seg" role="group" aria-label="Language">
+        <button data-l="en" aria-pressed="false">English</button>
+        <button data-l="si" aria-pressed="false" lang="si">සිංහල</button>
+        <button data-l="both" aria-pressed="true">EN + සිං</button>
+      </div>
+      <button class="ibtn" id="themeBtn" aria-label="Switch between light and dark"><span id="themeLbl">Dark</span></button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow"><span class="en">Compound interest demo</span><span class="si" lang="si">සංයුක්ත පොලී නිරූපණය</span></div>
+    <h1><span class="en">Small savings, left alone, grow into something big.</span><span class="si" lang="si">කුඩා ඉතිරි කිරීම්, කාලයත් සමග විශාල වේ.</span></h1>
+    <p class="lede bi"><span class="en">Choose how much you save each month and for how long. See what it becomes, how much of that is interest, and what it will really buy once prices rise.</span><span class="si" lang="si">මාසිකව ඉතිරි කරන මුදල සහ කාලය තෝරන්න. එය කුමක් වේද, ඉන් පොලිය කොපමණද, මිල ඉහළ ගිය පසු එයින් මිල දී ගත හැක්කේ කුමක්ද යන්න බලන්න.</span></p>
+    <div class="hero-fig">
+      <div class="hero-num" id="heroNum" aria-live="polite"></div>
+      <div class="hero-cap" id="heroCap"></div>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="Calculator">
+    <div class="ctls">
+      <div>
+        <h2><span class="en">Your plan</span><span class="si" lang="si">ඔබේ සැලැස්ම</span></h2>
+        <p class="help"><span class="en">Move the sliders. Everything updates as you go.</span><span class="si" lang="si">ස්ලයිඩර් චලනය කරන්න. සියල්ල ස්වයංක්‍රීයව යාවත්කාලීන වේ.</span></p>
+      </div>
+      <div class="ctl">
+        <label for="amt"><span class="bi"><span class="en">Saved each month</span><span class="si" lang="si">මාසිකව ඉතිරි කරන මුදල</span></span><output id="amtO"></output></label>
+        <input id="amt" type="range" min="1000" max="100000" step="500" value="5000">
+      </div>
+      <div class="ctl">
+        <label for="yrs"><span class="bi"><span class="en">For how many years</span><span class="si" lang="si">අවුරුදු කීයක් සඳහාද</span></span><output id="yrsO"></output></label>
+        <input id="yrs" type="range" min="1" max="40" step="1" value="30">
+        <div class="chips" id="chips" role="group" aria-label="Quick years">
+          <button data-y="10" aria-pressed="false">10</button><button data-y="20" aria-pressed="false">20</button><button data-y="30" aria-pressed="true">30</button><button data-y="40" aria-pressed="false">40</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <label for="rate"><span class="bi"><span class="en">Example yearly return</span><span class="si" lang="si">උදාහරණ වාර්ෂික ප්‍රතිලාභය</span></span><output id="rateO"></output></label>
+        <input id="rate" type="range" min="2" max="15" step="0.5" value="8">
+      </div>
+      <div class="ctl">
+        <label for="infl"><span class="bi"><span class="en">Example inflation</span><span class="si" lang="si">උදාහරණ උද්ධමනය</span></span><output id="inflO"></output></label>
+        <input id="infl" type="range" min="0" max="15" step="0.5" value="5">
+        <p class="help"><span class="en">How fast prices rise each year.</span><span class="si" lang="si">වසරකට මිල ඉහළ යන වේගය.</span></p>
+      </div>
+    </div>
+
+    <div class="results" aria-live="polite">
+      <div class="big">
+        <div class="lbl" id="bigLbl"></div>
+        <div class="val" id="bigVal"></div>
+      </div>
+      <div class="minis">
+        <div class="mini"><div class="lbl"><i style="background:var(--c-dep)"></i><span class="en">You put in</span><span class="si" lang="si">ඔබ දැමූ</span></div><div class="v" id="mDep"></div><div class="s" id="mDepS"></div></div>
+        <div class="mini"><div class="lbl"><i style="background:var(--c-int)"></i><span class="en">Interest earned</span><span class="si" lang="si">ලැබුණු පොලිය</span></div><div class="v" id="mInt"></div><div class="s" id="mIntS"></div></div>
+        <div class="mini"><div class="lbl"><i style="background:var(--c-real)"></i><span class="en">In today's money</span><span class="si" lang="si">අද මුදලින්</span></div><div class="v" id="mReal"></div><div class="s" id="mRealS"></div></div>
+      </div>
+      <div class="help bi" id="takeEn"></div>
+    </div>
+  </section>
+
+  <section class="sec" aria-label="Growth chart">
+    <div class="chartbox">
+      <div class="chead">
+        <div>
+          <h2 id="chartTitle"></h2>
+          <div class="legend" style="margin-top:8px">
+            <span><i style="background:var(--c-dep)"></i><span class="en">What you put in</span><span class="si" lang="si">ඔබ දැමූ මුදල</span></span>
+            <span><i style="background:var(--c-int)"></i><span class="en">Interest earned</span><span class="si" lang="si">ලැබුණු පොලිය</span></span>
+            <span><i class="ln" style="background:var(--c-real)"></i><span class="en">Same total in today's money</span><span class="si" lang="si">අද මුදලින් එම අගය</span></span>
+          </div>
+        </div>
+        <button class="ibtn" id="viewBtn" aria-pressed="false"><span class="en">Table view</span><span class="si" lang="si">වගුව</span></button>
+      </div>
+      <div class="plot" id="plot"><svg id="svg" viewBox="0 0 1000 380" role="img" aria-label="Stacked area chart of deposits and interest over the chosen years"></svg><div class="tip" id="tip"></div></div>
+      <div class="tblwrap" id="tblWrap" hidden></div>
+    </div>
+  </section>
+
+  <section class="two">
+    <div class="card">
+      <h3><span class="en">What does waiting cost?</span><span class="si" lang="si">ප්‍රමාද වීමෙන් අහිමි වන්නේ කුමක්ද?</span></h3>
+      <div class="waitrow"><span class="en">Start</span><span class="si" lang="si">ආරම්භය</span>
+        <select id="wait" aria-label="Years you wait"><option value="3">3</option><option value="5" selected>5</option><option value="10">10</option></select>
+        <span class="en">years later, same end date</span><span class="si" lang="si">අවුරුදු පසුව, අවසන් දිනය එලෙසමයි</span></div>
+      <div class="num" id="waitNum"></div>
+      <p class="bi" id="waitTxt"></p>
+    </div>
+    <div class="card">
+      <h3><span class="en">Who does the work?</span><span class="si" lang="si">වැඩ කරන්නේ කවුද?</span></h3>
+      <div class="num" id="shareNum"></div>
+      <p class="bi" id="shareTxt"></p>
+    </div>
+  </section>
+
+  <section class="sec" aria-label="Rule of 72">
+    <div class="r72">
+      <div>
+        <h2><span class="en">The Rule of 72</span><span class="si" lang="si">72 රීතිය</span></h2>
+        <div class="formula">72 ÷ <span id="fRate">8</span>% ≈ <span id="fYrs">9</span> <span class="en">years</span><span class="si" lang="si">අවුරුදු</span></div>
+        <p class="bi"><span class="en">A quick way to estimate how long money takes to double: divide 72 by the yearly return. At 8%, money doubles in about 9 years, then doubles again 9 years after that.</span><span class="si" lang="si">මුදල් දෙගුණ වීමට ගත වන කාලය ඉක්මනින් තක්සේරු කිරීමට: 72 ය වාර්ෂික ප්‍රතිලාභයෙන් බෙදන්න. 8%කදී මුදල් අවුරුදු 9කින් දෙගුණ වේ.</span></p>
+        <p class="help bi" id="r72Take"></p>
+      </div>
+      <div>
+        <div class="bars" id="bars" role="list"></div>
+        <p class="help"><span class="en">Years to double, using the exact formula. Your chosen rate is highlighted.</span><span class="si" lang="si">දෙගුණ වීමට ගත වන අවුරුදු (නිවැරදි සූත්‍රයෙන්). ඔබ තෝරා ගත් අනුපාතය ඉස්මතු කර ඇත.</span></p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="en">Example only, not a forecast or financial advice. Assumes equal deposits at each month-end and a constant yearly return compounded monthly, before tax and fees. "Today's money" discounts future rupees by the example inflation rate you set, held constant each year. Real returns vary and can be negative.</div>
+    <div class="si" lang="si">උදාහරණයක් පමණි; අනාවැකියක් හෝ මූල්‍ය උපදෙසක් නොවේ. සෑම මාස අවසානයකම සමාන තැන්පතුවක් සහ නියත වාර්ෂික ප්‍රතිලාභයක් (මාසිකව සංයෝජිත) ලෙස, බදු සහ ගාස්තුවලට පෙර උපකල්පනය කර ඇත. “අද මුදලින්” යනු ඔබ සකසන උද්ධමන අනුපාතයෙන් අනාගත රුපියල් අද අගයට පහත හෙලීමයි. සැබෑ ප්‍රතිලාභ වෙනස් වන අතර ඍණ විය හැක.</div>
+    <div>Prepared by the Department of Accountancy and Finance, Rajarata University of Sri Lanka.</div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var $=function(s){return document.querySelector(s)};
+  var root=document.documentElement;
+  function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+  function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+
+  /* language + theme */
+  function setLang(l){root.setAttribute('data-lang',l);document.querySelectorAll('.seg button').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.l===l)});lsSet('mg-lang',l)}
+  document.querySelectorAll('.seg button').forEach(function(b){b.onclick=function(){setLang(b.dataset.l)}});
+  setLang(lsGet('mg-lang')||'both');
+  function isDark(){var t=root.getAttribute('data-theme');if(t)return t==='dark';return window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches}
+  function themeLbl(){$('#themeLbl').textContent=isDark()?'Light':'Dark'}
+  var st=lsGet('mg-theme');if(st==='light'||st==='dark')root.setAttribute('data-theme',st);
+  themeLbl();
+  $('#themeBtn').onclick=function(){var n=isDark()?'light':'dark';root.setAttribute('data-theme',n);lsSet('mg-theme',n);themeLbl()};
+
+  /* maths */
+  var INF=5;
+  function fv(p,a,y){var r=a/1200,n=y*12;return r===0?p*n:p*(Math.pow(1+r,n)-1)/r}
+  function real(v,m){return v/Math.pow(1+INF/100,m/12)}
+  function rs(n){return 'Rs. '+Math.round(n).toLocaleString('en-US')}
+  function short(n){if(n>=1e9)return 'Rs. '+(n/1e9).toFixed(2)+' billion';if(n>=1e6)return 'Rs. '+(n/1e6).toFixed(2)+' million';return rs(n)}
+  function axis(n){return n>=1e9?(n/1e9)+'B':n>=1e6?(n/1e6)+'M':n>=1e3?(n/1e3)+'K':String(n)}
+  function niceMax(v){var p=Math.pow(10,Math.floor(Math.log10(v))),m=v/p;var s=m<=1?1:m<=2?2:m<=2.5?2.5:m<=5?5:10;return s*p}
+  function bi(el,en,si){el.innerHTML='';var a=document.createElement('span');a.className='en';a.textContent=en;var b=document.createElement('span');b.className='si';b.lang='si';b.textContent=si;el.appendChild(a);el.appendChild(b)}
+  function el(t,a,p){var e=document.createElementNS('http://www.w3.org/2000/svg',t);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
+
+  var W=1000,H=380,L=64,R=170,T=18,B=40,pw=W-L-R,ph=H-T-B;
+  function size(){var w=Math.round($('#plot').clientWidth||1000);W=Math.max(300,w);if(W<640){L=46;R=16;H=300}else{L=64;R=170;H=380}pw=W-L-R;ph=H-T-B;svg.setAttribute('viewBox','0 0 '+W+' '+H)}
+  var S={P:5000,A:8,I:5,Y:30}, cm=360, tableOn=false;
+  var svg=$('#svg'), tip=$('#tip');
+
+  function render(){
+    S.P=+$('#amt').value;S.A=+$('#rate').value;S.I=+$('#infl').value;S.Y=+$('#yrs').value;INF=S.I;
+    var P=S.P,A=S.A,Y=S.Y;
+    $('#amtO').textContent=rs(P)+' / mo';$('#rateO').textContent=A.toFixed(1)+'%';$('#inflO').textContent=S.I.toFixed(1)+'%';$('#yrsO').textContent=Y+' yrs';
+    document.querySelectorAll('#chips button').forEach(function(b){b.setAttribute('aria-pressed',+b.dataset.y===Y)});
+    var v=fv(P,A,Y),dep=P*12*Y,it=v-dep,rv=real(v,Y*12);
+
+    $('#heroNum').textContent=short(v);
+    $('#heroCap').textContent='is what '+rs(P)+' a month becomes after '+Y+' years at '+A.toFixed(1)+'% a year.';
+    var big=$('#bigLbl');bi(big,'After '+Y+' years you would have','අවුරුදු '+Y+'කට පසු ඔබට ලැබෙන්නේ');
+    $('#bigVal').textContent=rs(v);
+    $('#mDep').textContent=short(dep);$('#mDepS').textContent=rs(P)+' × '+(Y*12)+' months';
+    $('#mInt').textContent=short(it);$('#mIntS').textContent=(v/dep).toFixed(1)+'× what you put in';
+    $('#mReal').textContent=short(rv);$('#mRealS').textContent=Math.round(rv/v*100)+'% of the headline figure';
+    bi($('#takeEn'),'The interest is '+Math.round(it/v*100)+'% of the final amount. After '+S.I.toFixed(1)+'% yearly inflation, the headline figure buys what '+short(rv)+' buys today.','පොලිය අවසන් මුදලෙන් '+Math.round(it/v*100)+'%කි. '+S.I.toFixed(1)+'% උද්ධමනයෙන් පසු, අවසන් මුදලෙන් මිල දී ගත හැක්කේ අද '+short(rv)+' ට ගත හැකි දේයි.');
+    bi($('#chartTitle'),'Growth over '+Y+' years','අවුරුදු '+Y+'ක වර්ධනය');
+
+    chart();table();insights();r72();
+  }
+
+  function chart(){
+    size();var P=S.P,A=S.A,Y=S.Y,M=Y*12;
+    svg.innerHTML='';
+    var maxV=niceMax(fv(P,A,Y)*1.03);
+    var X=function(m){return L+pw*m/M},Yp=function(v){return T+ph*(1-v/maxV)};
+    for(var g=0;g<=4;g++){var gv=maxV*g/4;el('line',{x1:L,x2:L+pw,y1:Yp(gv),y2:Yp(gv),class:'gl'},svg);
+      var t=el('text',{x:L-10,y:Yp(gv)+4,'text-anchor':'end'},svg);t.textContent=g?axis(gv):'0'}
+    var step=Y<=12?(W<640?2:1):Y<=24?(W<640?4:2):5;
+    for(var y=0;y<=Y;y+=step){var t2=el('text',{x:X(y*12),y:H-12,'text-anchor':'middle'},svg);t2.textContent=y+(y===Y?' yrs':'')}
+    if(Y%step!==0){var t3=el('text',{x:X(M),y:H-12,'text-anchor':'middle'},svg);t3.textContent=Y+' yrs'}
+    var dep=[],tot=[],rl=[];
+    for(var m=0;m<=M;m++){var v=fv(P,A,m/12);dep.push([X(m),Yp(P*m)]);tot.push([X(m),Yp(v)]);rl.push([X(m),Yp(real(v,m))])}
+    var pth=function(a){return 'M'+a.map(function(p){return p[0].toFixed(1)+' '+p[1].toFixed(1)}).join('L')};
+    var base=Yp(0).toFixed(1);
+    el('path',{d:pth(tot)+'L'+dep.slice().reverse().map(function(p){return p[0].toFixed(1)+' '+p[1].toFixed(1)}).join('L')+'Z',style:'fill:var(--c-int);fill-opacity:.35'},svg);
+    el('path',{d:pth(dep)+'L'+X(M)+' '+base+'L'+X(0)+' '+base+'Z',style:'fill:var(--c-dep);fill-opacity:.3'},svg);
+    el('path',{d:pth(tot),fill:'none',style:'stroke:var(--c-int)','stroke-width':2,'stroke-linejoin':'round'},svg);
+    el('path',{d:pth(dep),fill:'none',style:'stroke:var(--c-dep)','stroke-width':2,'stroke-linejoin':'round'},svg);
+    el('path',{d:pth(rl),fill:'none',style:'stroke:var(--c-real)','stroke-width':2,'stroke-linejoin':'round'},svg);
+    // end labels, nudged apart when close
+    var vE=fv(P,A,Y),ys=[{k:'t',y:Yp(vE)+5,tx:short(vE),s:1},{k:'d',y:Yp(P*M)+5,tx:short(P*M)},{k:'r',y:Yp(real(vE,M))+5,tx:short(real(vE,M))}];
+    ys.sort(function(a,b){return a.y-b.y});
+    for(var i=1;i<ys.length;i++){if(ys[i].y-ys[i-1].y<17)ys[i].y=ys[i-1].y+17}
+    if(W<640){var tt=el('text',{x:X(M)-4,y:Yp(vE)-10,'text-anchor':'end',class:'strong'},svg);tt.textContent=short(vE)}
+    else ys.forEach(function(o){var t=el('text',{x:X(M)+10,y:o.y,class:o.s?'strong':''},svg);t.textContent=o.tx});
+    var cur=el('g',{},svg);
+    el('line',{id:'cl',y1:T,y2:T+ph,style:'stroke:var(--ink)','stroke-opacity':.5,'stroke-width':1},cur);
+    el('circle',{id:'cd1',r:5,style:'fill:var(--c-int);stroke:var(--surface)','stroke-width':2},cur);
+    el('circle',{id:'cd3',r:5,style:'fill:var(--c-real);stroke:var(--surface)','stroke-width':2},cur);
+    el('circle',{id:'cd2',r:5,style:'fill:var(--c-dep);stroke:var(--surface)','stroke-width':2},cur);
+    var hit=el('rect',{x:L,y:T,width:pw,height:ph,fill:'transparent',tabindex:0,role:'slider','aria-label':'Year scrubber','aria-valuemin':0,'aria-valuemax':Y,'aria-valuenow':Y},svg);
+    svg._s={X:X,Yp:Yp,M:M};
+    function mm(ev){var r=svg.getBoundingClientRect(),sc=W/r.width,x=((ev.clientX-r.left)*sc-L)/pw;showAt(Math.max(0,Math.min(M,Math.round(x*M))))}
+    hit.addEventListener('pointermove',mm);hit.addEventListener('pointerdown',mm);
+    hit.addEventListener('keydown',function(e){var m=cm;if(e.key==='ArrowRight')m+=12;else if(e.key==='ArrowLeft')m-=12;else return;e.preventDefault();showAt(Math.max(0,Math.min(M,m)))});
+    showAt(Math.min(cm,M)===cm&&cm<=M?cm:M);
+  }
+  function showAt(m){
+    var s=svg._s;if(!s)return;
+    if(m>s.M)m=s.M;cm=m;
+    var P=S.P,A=S.A,x=s.X(m),v=fv(P,A,m/12),d=P*m;
+    $('#cl').setAttribute('x1',x);$('#cl').setAttribute('x2',x);
+    [['#cd1',v],['#cd3',real(v,m)],['#cd2',d]].forEach(function(p){var c=$(p[0]);c.setAttribute('cx',x);c.setAttribute('cy',s.Yp(p[1]))});
+    var yy=m/12,lab=Number.isInteger(yy)?yy+' yrs':Math.floor(yy)+' yrs '+(m%12)+' mo';
+    tip.textContent='';
+    var y=document.createElement('div');y.className='yr';y.textContent='After '+lab;tip.appendChild(y);
+    function row(c,n,val,b){var r=document.createElement('div');r.className='row';var a=document.createElement('span');var k=document.createElement('i');k.className='k';k.style.background=c;a.appendChild(k);a.appendChild(document.createTextNode(n));var q=document.createElement(b?'b':'span');q.textContent=val;r.appendChild(a);r.appendChild(q);tip.appendChild(r)}
+    row('var(--c-int)','Interest',rs(v-d));row('var(--c-dep)','Put in',rs(d));row('var(--gold)','Total',rs(v),true);row('var(--c-real)','Today\'s money',rs(real(v,m)));
+    tip.style.display='block';
+    var box=$('#plot').getBoundingClientRect(),sc=box.width/W;
+    var left=x*sc+14;if(left+210>box.width)left=x*sc-224;if(left<0)left=Math.max(0,box.width-212);
+    tip.style.left=Math.max(0,left)+'px';tip.style.top=(ph*sc*0.45)+'px';
+    var sl=svg.querySelector('[role=slider]');if(sl)sl.setAttribute('aria-valuenow',Math.round(m/12));
+  }
+
+  function table(){
+    var P=S.P,A=S.A,Y=S.Y,h='<table><thead><tr><th>Years</th><th>Put in</th><th>Interest</th><th>Total</th><th>In today\'s money</th></tr></thead><tbody>';
+    var step=Y<=10?1:Y<=20?2:5,ys=[];
+    for(var y=step;y<=Y;y+=step)ys.push(y);if(ys[ys.length-1]!==Y)ys.push(Y);
+    ys.forEach(function(y){var v=fv(P,A,y),d=P*12*y;h+='<tr><td>'+y+'</td><td>'+rs(d)+'</td><td>'+rs(v-d)+'</td><td><b>'+rs(v)+'</b></td><td>'+rs(real(v,y*12))+'</td></tr>'});
+    $('#tblWrap').innerHTML=h+'</tbody></table>';
+  }
+  $('#viewBtn').onclick=function(){tableOn=!tableOn;$('#plot').hidden=tableOn;$('#tblWrap').hidden=!tableOn;$('#viewBtn').setAttribute('aria-pressed',tableOn)};
+
+  function insights(){
+    var P=S.P,A=S.A,Y=S.Y;
+    var sel=$('#wait');var w=+sel.value;
+    Array.prototype.forEach.call(sel.options,function(o){o.disabled=+o.value>=Y});
+    if(w>=Y){var ok=Array.prototype.filter.call(sel.options,function(o){return !o.disabled});if(ok.length){sel.value=ok[ok.length-1].value;w=+sel.value}else{w=0}}
+    var full=fv(P,A,Y);
+    if(w>0){
+      var late=fv(P,A,Y-w);
+      $('#waitNum').textContent='− '+short(full-late);
+      bi($('#waitTxt'),'Starting '+w+' years late, you would have about '+short(late)+' instead of '+short(full)+', even though you skip only '+rs(P*12*w)+' of savings.','අවුරුදු '+w+'ක් ප්‍රමාද වී ආරම්භ කළහොත් ලැබෙන්නේ ආසන්න වශයෙන් '+short(late)+' පමණි ('+short(full)+' වෙනුවට). මග හැරුණු ඉතිරි කිරීම '+rs(P*12*w)+' පමණි.');
+    }else{$('#waitNum').textContent='—';bi($('#waitTxt'),'Choose a longer plan to compare.','සංසන්දනය සඳහා දිගු කාලයක් තෝරන්න.')}
+    var d=P*12*Y,pc=Math.round((full-d)/full*100);
+    $('#shareNum').textContent=pc+'%';
+    bi($('#shareTxt'),'of the final amount is interest. You deposit '+rs(d)+'; time and compounding add '+rs(full-d)+'. After inflation, the real return is about '+(((1+A/100)/(1+S.I/100)-1)*100).toFixed(1)+'% a year.','අවසන් මුදලෙන් පොලිය ඒ ප්‍රතිශතයයි. ඔබ දමන්නේ '+rs(d)+'; කාලය සහ සංයෝජනය මගින් '+rs(full-d)+' එක් වේ. උද්ධමනයෙන් පසු සැබෑ ප්‍රතිලාභය වසරකට ආසන්න වශයෙන් '+(((1+A/100)/(1+S.I/100)-1)*100).toFixed(1)+'%කි.');
+  }
+
+  function r72(){
+    var A=S.A,rates=[4,6,8,10,12,15];
+    if(rates.indexOf(A)<0){rates.push(A);rates.sort(function(a,b){return a-b})}
+    var ex=function(r){return Math.log(2)/Math.log(1+r/100)};
+    var maxY=ex(rates[0]),h=$('#bars');h.innerHTML='';
+    rates.forEach(function(r){
+      var d=document.createElement('div');d.className='bar'+(r===A?' you':'');d.setAttribute('role','listitem');
+      var a=document.createElement('span');a.textContent=r+'%';
+      var tr=document.createElement('div');tr.className='tr';var fl=document.createElement('div');fl.className='fl';fl.style.width=(ex(r)/maxY*100)+'%';tr.appendChild(fl);
+      var b=document.createElement('b');b.textContent=ex(r).toFixed(1)+' yrs';
+      d.appendChild(a);d.appendChild(tr);d.appendChild(b);h.appendChild(d)});
+    $('#fRate').textContent=A%1===0?A:A.toFixed(1);$('#fYrs').textContent=(72/A).toFixed(1).replace(/\.0$/,'');
+    var doubles=S.Y/ex(A);
+    bi($('#r72Take'),'Over '+S.Y+' years at '+A.toFixed(1)+'%, a single deposit would double about '+doubles.toFixed(1)+' times.','අවුරුදු '+S.Y+'ක් තුළ '+A.toFixed(1)+'%කදී එක් තැන්පතුවක් ආසන්න වශයෙන් '+doubles.toFixed(1)+' වතාවක් දෙගුණ වේ.');
+  }
+
+  ['amt','rate','infl','yrs','wait'].forEach(function(id){$('#'+id).addEventListener('input',function(){if(id==='yrs'||id==='amt'||id==='rate'||id==='infl')cm=+$('#yrs').value*12;render()})});
+  document.querySelectorAll('#chips button').forEach(function(b){b.onclick=function(){$('#yrs').value=b.dataset.y;cm=+b.dataset.y*12;render()}});
+  render();
+  var rt;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(function(){if(Math.abs(($('#plot').clientWidth||0)-W)>2){chart()}},120)});
+})();
+</script>
+</body>
+</html>
